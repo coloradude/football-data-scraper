@@ -9,51 +9,43 @@ const rateLimit = 3000
 
 const getCareerSummaryUrls = ($) => {
   const careerSummaryUrls = []
-
-  // Grabbing href's and passing them into array
-
   $('#passing tbody').children().each((i, el) => {
      careerSummaryUrls.push($(el).find('td').find('a').attr('href'))
   })
-  return careerSummaryUrls
+  return careerSummaryUrls.filter(item => item)
 }
 
 const createPromiseArray = (urls) => {
-  return urls
-    // We have to filter because some of the rows dont contain any info
-    .filter(item => item)
-    .slice(0, 1)
+  return urls    
+    // .slice(0, 1)
     .map((url, i) => {
       const options = {
         uri: 'https://www.pro-football-reference.com' + url,
         transform: body => cheerio.load(body)
       }
-
       return Promise.delay(i * rateLimit).then(() => {
-        console.log('sending request')
-        rp(options)
+        console.log('sending request', url)
+        return rp(options)
       })
     }) 
 }
 
 const getAllPromises = (promises) => Promise.all(promises)
 
-const getPlayerUrls = (careerSummary) => {
+const getPlayerUrls = (careerSummary, year) => {
   return careerSummary.map($ => {
-
-    // Nasty DOM traversal since they dont give classes or ids or 
-    // any unique attributes to stuff
-
-    return $('#inner_nav').find('.hasmore').first().find('li').last().find('a').attr('href')
+    if (year === 2014){
+      return $('#inner_nav').find('.hasmore').first().find('li').last().prev().prev().find('a').attr('href')
+    } else if (year === 2015){
+      return $('#inner_nav').find('.hasmore').first().find('li').last().prev().find('a').attr('href')
+    } else {
+      return $('#inner_nav').find('.hasmore').first().find('li').last().find('a').attr('href')
+    }
   })
 }
 
 const parsePlayerData = (playerData) => {
   const allGameData = []
-
-  // Here we are parsing the season stats table and flattening it out. In the
-  // end we want a csv with every game played by every player, one to each row.
-
   playerData.forEach($ => {
     $('#stats tbody').children().each((i, row) => {
       const playerName = $('#meta h1').text()
@@ -74,36 +66,44 @@ const parsePlayerData = (playerData) => {
   return allGameData
 }
 
-const generateCSV = (data) => {
-  fs.writeFileSync('2016-passing.csv', 
+const generateCSV = (data, year) => {
+  fs.writeFileSync(year + '-passing.csv', 
     json2csv({
       data: data, 
       fields: Object.getOwnPropertyNames(data[0])
     }))
 }
 
-// Grabbing initial list of all player urls
+const getYearlyData = (startingYear) => {
+  if (startingYear > 2016) return
 
-const years = ['2015', '2016']
+  const options = {
+    uri: 'https://www.pro-football-reference.com/years/' + startingYear + '/passing.htm',
+    transform: body => cheerio.load(body)
+  }
 
-years.forEach(year => {
-  
-})
+  rp(options)
+    .then(getCareerSummaryUrls)
+    .then(createPromiseArray)
+    .then(getAllPromises)
+    .then(careerSummary => getPlayerUrls(careerSummary, startingYear))
+    .then(createPromiseArray)
+    .then(getAllPromises)
+    .then(parsePlayerData)
+    .then(data => generateCSV(data, startingYear))
+    .then(() => getYearlyData(startingYear + 1))    
+    .catch(err =>  {
+      throw err
+    })
 
-const options = {
-  uri: 'https://www.pro-football-reference.com/years/2016/passing.htm',
-  transform: body => cheerio.load(body)
 }
 
-rp(options)
-  .then(getCareerSummaryUrls)
-  .then(createPromiseArray)
-  .then(getAllPromises)
-  .then(getPlayerUrls)
-  .then(createPromiseArray)
-  .then(getAllPromises)
-  .then(parsePlayerData)
-  .then(generateCSV)    
-  .catch(err =>  console.log(err))
+getYearlyData(2014)
+  
+
+
+
+
+
 
   
