@@ -5,7 +5,7 @@ const fs = require('fs')
 const json2csv = require('json2csv')
 const Promise = require('bluebird')
 
-const rateLimit = 3000
+const rateLimit = 1000
 
 const getCareerSummaryUrls = ($, tableId) => {
   const careerSummaryUrls = []
