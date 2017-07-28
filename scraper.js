@@ -7,9 +7,9 @@ const Promise = require('bluebird')
 
 const rateLimit = 3000
 
-const getCareerSummaryUrls = ($) => {
+const getCareerSummaryUrls = ($, tableId) => {
   const careerSummaryUrls = []
-  $('#passing tbody').children().each((i, el) => {
+  $(tableId + ' tbody').children().each((i, el) => {
      careerSummaryUrls.push($(el).find('td').find('a').attr('href'))
   })
   return careerSummaryUrls.filter(item => item)
@@ -32,19 +32,25 @@ const createPromiseArray = (urls) => {
 
 const getAllPromises = (promises) => Promise.all(promises)
 
+// This function needs to be optimized
+
 const getPlayerUrls = (careerSummary, year) => {
   return careerSummary.map($ => {
+    const regex = new RegExp(year)
     if (year === 2014){
-      return $('#inner_nav').find('.hasmore').first().find('li').last().prev().prev().find('a').attr('href')
+      const link = $('#inner_nav').find('.hasmore').first().find('li').last().prev().prev().find('a').attr('href')
+      if (regex.test(link)) return link
     } else if (year === 2015){
-      return $('#inner_nav').find('.hasmore').first().find('li').last().prev().find('a').attr('href')
+      const link = $('#inner_nav').find('.hasmore').first().find('li').last().prev().find('a').attr('href')
+      if (regex.test(link)) return link
     } else {
-      return $('#inner_nav').find('.hasmore').first().find('li').last().find('a').attr('href')
+      const link = $('#inner_nav').find('.hasmore').first().find('li').last().find('a').attr('href')
+      if (regex.test(link)) return link
     }
-  })
+  }).filter(item => item)
 }
 
-const parsePlayerData = (playerData) => {
+const parsePlayerData = (playerData, tableId) => {
   const allGameData = []
   playerData.forEach($ => {
     $('#stats tbody').children().each((i, row) => {
@@ -66,39 +72,48 @@ const parsePlayerData = (playerData) => {
   return allGameData
 }
 
-const generateCSV = (data, year) => {
-  fs.writeFileSync(year + '-passing.csv', 
+const generateCSV = (data, year, position) => {
+  fs.writeFileSync(year + '-' + position + '.csv', 
     json2csv({
       data: data, 
       fields: Object.getOwnPropertyNames(data[0])
     }))
 }
 
-const getYearlyData = (startingYear) => {
+const getYearlyData = (startingYear, position, tableId) => {
   if (startingYear > 2016) return
-
   const options = {
-    uri: 'https://www.pro-football-reference.com/years/' + startingYear + '/passing.htm',
+    uri: 'https://www.pro-football-reference.com/years/' + startingYear + '/' + position +'.htm',
     transform: body => cheerio.load(body)
   }
 
-  rp(options)
-    .then(getCareerSummaryUrls)
+  return rp(options)
+    .then(urls => getCareerSummaryUrls(urls, tableId))
     .then(createPromiseArray)
     .then(getAllPromises)
     .then(careerSummary => getPlayerUrls(careerSummary, startingYear))
     .then(createPromiseArray)
     .then(getAllPromises)
     .then(parsePlayerData)
-    .then(data => generateCSV(data, startingYear))
-    .then(() => getYearlyData(startingYear + 1))    
+    .then(data => generateCSV(data, startingYear, position))
+    .then(() => getYearlyData(startingYear + 1, position, tableId))    
     .catch(err =>  {
       throw err
     })
 
 }
 
-getYearlyData(2014)
+const passingTableId = '#passing'
+const rushingTableId = '#rushing_and_receiving'
+const receivingTableId = '#receiving'
+const defenseTableId = '#defense'
+
+getYearlyData(2014, 'passing', passingTableId)
+  .then(() => getYearlyData(2014, 'rushing', rushingTableId))
+  .then(() => getYearlyData(2014, 'receiving', receivingTableId))
+  .then(() => getYearlyData(2014, 'defense', defenseTableId))
+
+
   
 
 
