@@ -10,8 +10,12 @@
   "license": "ISC",
   "dependencies": {
     "bluebird": "^3.5.0",
+    "canvas": "^1.6.6",
     "cheerio": "^1.0.0-rc.2",
+    "jsdom": "^11.2.0",
     "json2csv": "^3.10.0",
+    "nightmare": "^2.10.0",
+    "node-fetch": "^1.7.2",
     "request": "^2.81.0",
     "request-promise": "^4.2.1",
     "to-csv": "jwerle/to-csv"

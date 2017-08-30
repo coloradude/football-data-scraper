@@ -5,7 +5,7 @@ const fs = require('fs')
 const json2csv = require('json2csv')
 const Promise = require('bluebird')
 
-const rateLimit = 1000
+const rateLimit = 1200
 
 const getCareerSummaryUrls = ($, tableId) => {
   const careerSummaryUrls = []
@@ -15,20 +15,66 @@ const getCareerSummaryUrls = ($, tableId) => {
   return careerSummaryUrls.filter(item => item)
 }
 
-const createPromiseArray = (urls) => {
-  return urls    
-    // .slice(0, 1)
-    .map((url, i) => {
-      const options = {
-        uri: 'https://www.pro-football-reference.com' + url,
-        transform: body => cheerio.load(body)
-      }
-      return Promise.delay(i * rateLimit).then(() => {
-        console.log('sending request', url)
-        return rp(options)
+// const createPromiseArray = (urls) => {
+//   return urls    
+//     // .slice(0, 2)
+//     .map((url, i) => {
+//       const options = {
+//         uri: 'https://www.pro-football-reference.com' + url,
+//         transform: body => cheerio.load(body)
+//       }
+//       return Promise.delay(i * rateLimit).then(() => {
+//         console.log('sending request', url)
+//         return rp(options)
+//       })
+//     }) 
+// }
+
+const getPlayerDataByYear = (careerSummaryUrls) => {
+  return careerSummaryUrls.map(url => {
+    const options = {
+      uri: 'https://www.pro-football-reference.com' + url,
+      transform: body => cheerio.load(body)
+    }
+    return rp(options)
+      .then(player => {
+        const playerStatUrls = []
+        urls.forEach($ => {  
+          const regex = new RegExp(year)
+          if (year === 2014){
+            const link = $('#inner_nav').find('.hasmore').first().find('li').last().prev().prev().find('a').attr('href')
+            if (regex.test(link)) playerStatUrls.push(link)
+          } else if (year === 2015){
+            const link = $('#inner_nav').find('.hasmore').first().find('li').last().prev().find('a').attr('href')
+            if (regex.test(link)) playerStatUrls.push(link)
+          } else {
+            const link = $('#inner_nav').find('.hasmore').first().find('li').last().find('a').attr('href')
+            if (regex.test(link)) playerStatUrls.push(link)
+          }
+        })
+        return playerStatUrls
       })
-    }) 
+  })
 }
+
+// const getPlayerDataUrls = (urls, year) => {
+//   return urls.map($ => {
+//     const regex = new RegExp(year)
+//     if (year === 2014){
+//       const link = $('#inner_nav').find('.hasmore').first().find('li').last().prev().prev().find('a').attr('href')
+//       if (regex.test(link)) return link
+//     } else if (year === 2015){
+//       const link = $('#inner_nav').find('.hasmore').first().find('li').last().prev().find('a').attr('href')
+//       if (regex.test(link)) return link
+//     } else {
+//       const link = $('#inner_nav').find('.hasmore').first().find('li').last().find('a').attr('href')
+//       if (regex.test(link)) return link
+//     }
+//   }).filter(item => item)
+// }
+
+
+
 
 const getAllPromises = (promises) => Promise.all(promises)
 
@@ -56,15 +102,15 @@ const parsePlayerData = (playerData, tableId) => {
     $('#stats tbody').children().each((i, row) => {
       const playerName = $('#meta h1').text()
       const gameData = {}
+      gameData.playerName = playerName
       $(row).children().each((i, stat) => {
+        // Some of the data is nested inside of an anchor tag. This detects 
+        // if that is the case
         if ($(stat).children().length > 0){
-          // Some of the data is nested inside of an anchor tag. This detects 
-          // if that is the case
           gameData[$(stat).data('stat')] = $(stat).find('a').text()
         } else {
           gameData[$(stat).data('stat')] = $(stat).text()
         }
-        gameData.playerName = playerName
       })
       allGameData.push(gameData)
     })
@@ -81,7 +127,7 @@ const generateCSV = (data, year, position) => {
 }
 
 const getYearlyData = (startingYear, position, tableId) => {
-  if (startingYear > 2016) return
+  if (startingYear > 2014) return
   const options = {
     uri: 'https://www.pro-football-reference.com/years/' + startingYear + '/' + position +'.htm',
     transform: body => cheerio.load(body)
@@ -108,11 +154,12 @@ const rushingTableId = '#rushing_and_receiving'
 const receivingTableId = '#receiving'
 const defenseTableId = '#defense'
 
-getYearlyData(2014, 'passing', passingTableId)
-  .then(() => getYearlyData(2014, 'rushing', rushingTableId))
-  .then(() => getYearlyData(2014, 'receiving', receivingTableId))
-  .then(() => getYearlyData(2014, 'defense', defenseTableId))
+// getYearlyData(2014, 'passing', passingTableId)
+//   .then(() => getYearlyData(2014, 'rushing', rushingTableId))
+//   .then(() => getYearlyData(2014, 'receiving', receivingTableId))
+//   .then(() => getYearlyData(2014, 'defense', defenseTableId))
 
+getYearlyData(2014, 'defense', defenseTableId)
 
   
 
