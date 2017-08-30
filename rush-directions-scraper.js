@@ -29,13 +29,12 @@ nightmare
     const awaySnapData = []
 
     const date = $('#content h1').text().split('-')[1].trim()
-    console.log(date)
 
     const $headings = $('#rush_directions').find('thead').children().last()
-    const $passTargetData = $('#rush_directions tbody')
+    const $rushDirectionData = $('#rush_directions tbody')
 
-    const getPassTargetData = ($table, $headings) => {
-      const allPassData = []
+    const getRushTargetData = ($table, $headings) => {
+      const allRushData = []
       const headings = []
 
       $headings.children().each((i, item) => {
@@ -76,14 +75,14 @@ nightmare
             playerData[headings[i]] = $(item).text()
           }
         })
-        allPassData.push(playerData)
+        allRushData.push(playerData)
 
       })
-      // console.log(allPassData)
-      generateCSV(allPassData, date)
+      // console.log(allRushData)
+      generateCSV(allRushData, date)
     }
 
-    getPassTargetData($passTargetData, $headings)
+    getRushTargetData($rushDirectionData, $headings)
 
   })
   .catch(err => console.log(err))
